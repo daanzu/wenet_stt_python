@@ -1,0 +1,3 @@
+[submodule "native/wenet"]
+	path = native/wenet
+	url = git@github.com:daanzu/wenet.git
