@@ -1,0 +1,2 @@
+[build-system]
+requires = ["setuptools", "wheel", "scikit-build~=0.10.0", "cmake>=3.15", "ninja", "torch~=1.9.0"]

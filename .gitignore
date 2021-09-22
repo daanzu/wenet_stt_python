@@ -1,0 +1,24 @@
+tests/model
+tmp/
+wheels
+native/wenet/runtime/server/x86/fc_base/
+
+# general things to ignore
+venv*/
+build/
+_skbuild/
+dist/
+wheelhouse/
+wheels/
+*.egg-info/
+*.egg
+*.py[cod]
+__pycache__/
+*.so
+*~
+.vscode/
+pip-wheel-metadata/
+
+# due to using tox and pytest
+.tox
+.cache
