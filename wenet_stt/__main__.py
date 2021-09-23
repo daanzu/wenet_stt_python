@@ -8,7 +8,7 @@ import argparse
 
 from . import _name, WenetSTT
 
-CHUNK_SIZE = 16 * 1024
+DOWNLOAD_CHUNK_SIZE = 16 * 1024
 
 DOWNLOADS = {
 }
@@ -30,7 +30,7 @@ def download_model(name, url, verbose=False):
         with open(filename, 'wb') as f:
             bytes_read = 0
             report_percentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-            for chunk in iter(lambda: response.read(CHUNK_SIZE), b''):
+            for chunk in iter(lambda: response.read(DOWNLOAD_CHUNK_SIZE), b''):
                 f.write(chunk)
                 bytes_read += len(chunk)
                 if verbose:
@@ -50,7 +50,7 @@ def main():
     parser = argparse.ArgumentParser(prog='python -m %s' % _name)
     subparsers = parser.add_subparsers(dest='command', help='sub-command')
     subparser = subparsers.add_parser('decode', help='Decode one or more WAV files')
-    subparser.add_argument('model', help='Model directory to use')
+    subparser.add_argument('model_dir', help='Model directory to use')
     subparser.add_argument('wav_file', nargs='+', help='WAV file to decode')
     subparser = subparsers.add_parser('download', help='Download a model to decode with')
     subparser.add_argument('model', nargs='*', help='Model name to download (will also be the output directory)')
@@ -58,13 +58,13 @@ def main():
 
     if args.command == 'decode':
         import wave
-        wenet_stt = WenetSTT(args.model)
+        wenet_stt = WenetSTT(WenetSTT.build_config(args.model_dir))
         for wave_file_path in args.wav_file:
             with wave.open(wave_file_path, 'rb') as wav_file:
                 wav_data = wav_file.readframes(wav_file.getnframes())
                 print(wenet_stt.decode(wav_data))
 
-    if args.command == 'download':
+    elif args.command == 'download':
         if not args.model:
             print("List of available models:")
             for name in DOWNLOADS:

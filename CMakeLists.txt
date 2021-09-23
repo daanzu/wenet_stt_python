@@ -6,6 +6,11 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(wenet_stt)
 
 add_subdirectory(native/wenet/runtime/server/x86)
+if(NOT MSVC)
+    link_directories(${openfst_PREFIX_DIR}/lib)
+else()
+    link_directories(${boost_SOURCE_DIR}/stage/lib)
+endif()
 
 find_package(Torch REQUIRED)
 message("wenet_stt CMakeLists: ${TORCH_CXX_FLAGS}")
@@ -21,8 +26,10 @@ target_include_directories(wenet_stt_lib PRIVATE
     ${gflags_BINARY_DIR}/include
     ${glog_SOURCE_DIR}/src ${glog_BINARY_DIR}
 )
-    # native/wenet/runtime/server/x86/fc_base/openfst-src/src/include
-target_link_libraries(wenet_stt_lib "${TORCH_LIBRARIES}")
+target_link_libraries(wenet_stt_lib
+    frontend
+    decoder
+)
 set_property(TARGET wenet_stt_lib PROPERTY CXX_STANDARD 14)
 
 add_custom_command(

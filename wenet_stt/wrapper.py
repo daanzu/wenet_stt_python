@@ -50,8 +50,16 @@ class WenetSTT(FFIObject):
     """
 
     def __init__(self, config):
+        if not isinstance(config, dict):
+            raise TypeError("config must be a dict")
+        assert 'model_path' in config
+        if not os.path.exists(config['model_path']):
+            raise FileNotFoundError("model_path does not exist")
+        assert 'dict_path' in config
+        if not os.path.exists(config['dict_path']):
+            raise FileNotFoundError("dict_path does not exist")
+
         super().__init__()
-        config = dict(config)  # Guarantee dict/copy
         result = self._lib.wenet_stt__construct(encode(json.dumps(config)))
         if result == _ffi.NULL:
             raise Exception("wenet_stt__construct failed")
@@ -62,6 +70,17 @@ class WenetSTT(FFIObject):
             result = self._lib.wenet_stt__destruct(self._model)
             if not result:
                 raise Exception("wenet_stt__destruct failed")
+
+    @classmethod
+    def build_config(cls, model_dir=None, config=None):
+        if config is None:
+            config = dict()
+        if not isinstance(config, dict):
+            raise TypeError("config must be a dict or None")
+        if model_dir is not None:
+            config['model_path'] = os.path.join(model_dir, 'final.zip')
+            config['dict_path'] = os.path.join(model_dir, 'words.txt')
+        return config
 
     def decode(self, wav_samples, text_max_len=1024):
         if not isinstance(wav_samples, np.ndarray): wav_samples = np.frombuffer(wav_samples, np.int16)
