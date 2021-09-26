@@ -6,14 +6,11 @@
 
 import argparse
 
-from . import _name, WenetSTT
+from . import _name, WenetSTT, MODEL_DOWNLOADS
 
-DOWNLOAD_CHUNK_SIZE = 16 * 1024
+DOWNLOAD_CHUNK_SIZE = 1 * 1024 * 1024
 
-DOWNLOADS = {
-}
-
-def download_model(name, url, verbose=False):
+def download_model(name, url, verbose):
     from os.path import exists
     from urllib.request import urlopen
     import zipfile
@@ -28,15 +25,16 @@ def download_model(name, url, verbose=False):
         print("Downloading model '%s'..." % name)
     with urlopen(url) as response:
         with open(filename, 'wb') as f:
+            response_length = int(response.getheader('Content-Length'))  # Don't trust response.length!
             bytes_read = 0
             report_percentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
             for chunk in iter(lambda: response.read(DOWNLOAD_CHUNK_SIZE), b''):
                 f.write(chunk)
                 bytes_read += len(chunk)
                 if verbose:
-                    print('.', end='')
-                    while report_percentages and bytes_read >= report_percentages[0] * response.length / 100:
-                        print(' %d%% ' % report_percentages.pop(0), end='')
+                    print('.', end='', flush=True)
+                    while report_percentages and bytes_read >= report_percentages[0] * response_length / 100:
+                        print(' %d%% ' % report_percentages.pop(0), end='', flush=True)
 
     if verbose:
         print("Done!")
@@ -51,9 +49,9 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='sub-command')
     subparser = subparsers.add_parser('decode', help='Decode one or more WAV files')
     subparser.add_argument('model_dir', help='Model directory to use')
-    subparser.add_argument('wav_file', nargs='+', help='WAV file to decode')
+    subparser.add_argument('wav_file', nargs='+', help='WAV file(s) to decode')
     subparser = subparsers.add_parser('download', help='Download a model to decode with')
-    subparser.add_argument('model', nargs='*', help='Model name to download (will also be the output directory)')
+    subparser.add_argument('model', nargs='*', help='Model name(s) to download (will also be the output directory)')
     args = parser.parse_args()
 
     if args.command == 'decode':
@@ -67,14 +65,14 @@ def main():
     elif args.command == 'download':
         if not args.model:
             print("List of available models:")
-            for name in DOWNLOADS:
+            for name in MODEL_DOWNLOADS:
                 print(name)
         else:
             for name in args.model:
-                if name not in DOWNLOADS:
+                if name not in MODEL_DOWNLOADS:
                     print("Model '%s' not found" % name)
                     continue
-                download_model(name, DOWNLOADS[name])
+                download_model(name, MODEL_DOWNLOADS[name], True)
 
     else:
         parser.print_help()
