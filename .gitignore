@@ -1,7 +1,7 @@
 tests/model
 tmp/
-wheels
-native/wenet/runtime/server/x86/fc_base/
+fc_base*/
+_skbuild*/
 
 # general things to ignore
 venv*/

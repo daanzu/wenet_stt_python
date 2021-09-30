@@ -40,6 +40,8 @@ add_custom_command(
     COMMENT "Installing wenet_stt_lib shared library file to python project directory"
 )
 
+# set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON" FORCE)
+
 # get_cmake_property(_variableNames VARIABLES)
 # list (SORT _variableNames)
 # foreach (_variableName ${_variableNames})
