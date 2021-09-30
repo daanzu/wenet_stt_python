@@ -16,17 +16,13 @@ test_wav_path = os.path.join(os.path.dirname(__file__), 'test.wav')
 @pytest.fixture
 def decoder():
     from wenet_stt import WenetSTT
-    config = dict(
-        model_path=os.path.join(test_model_path, 'final.zip'),
-        dict_path=os.path.join(test_model_path, 'words.txt'),
-    )
-    return WenetSTT(config)
+    return WenetSTT(WenetSTT.build_config(test_model_path))
 
 @pytest.fixture
 def wav_samples():
     import wave
-    wav_file = wave.open(test_wav_path, 'rb')
-    data = wav_file.readframes(wav_file.getnframes())
+    with wave.open(test_wav_path, 'rb') as wav_file:
+        data = wav_file.readframes(wav_file.getnframes())
     return data
 
 
@@ -34,7 +30,7 @@ def test_missing_model():
     assert not os.path.exists(test_missing_model_path)
     from wenet_stt import WenetSTT
     with pytest.raises(FileNotFoundError):
-        WenetSTT(dict(model_path=test_missing_model_path))
+        WenetSTT(WenetSTT.build_config(test_missing_model_path))
 
 def test_init(decoder):
     pass
