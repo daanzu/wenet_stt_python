@@ -36,7 +36,7 @@ add_custom_command(
     TARGET wenet_stt_lib POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:wenet_stt_lib>
-        ${PROJECT_SOURCE_DIR}/wenet_stt/
+        ${PROJECT_SOURCE_DIR}/src/wenet_stt/
     COMMENT "Installing wenet_stt_lib shared library file to python project directory"
 )
 

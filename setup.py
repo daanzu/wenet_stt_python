@@ -54,7 +54,7 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-version = find_version('wenet_stt', '__init__.py')
+version = find_version('src', 'wenet_stt', '__init__.py')
 if version.endswith('dev0'):
     version = version[:-1] + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
@@ -97,7 +97,13 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     # keywords='speech recognition',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+    # py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    package_data={
+        'wenet_stt': ['libwenet_stt_lib.*'],
+        '': ['LICENSE'],
+    },
     python_requires='>=3.6, <4',
     install_requires=[
         'cffi ~= 1.12',
@@ -106,10 +112,6 @@ setup(
     extras_require={
         # 'dev': ['check-manifest'],
         'test': ['pytest'],
-    },
-    package_data={
-        'wenet_stt': ['libwenet_stt_lib.*'],
-        '': ['LICENSE'],
     },
     project_urls={
         'Bug Reports': 'https://github.com/daanzu/wenet_stt/issues',
