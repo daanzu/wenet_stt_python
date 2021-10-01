@@ -64,9 +64,6 @@ with open(os.path.join(here, 'README.md')) as f:
 if not os.path.exists('native/wenet/runtime/server/x86/CMakeLists.txt'):
     subprocess.check_call(['git', 'submodule', 'update', '--init', 'native/wenet'])
 
-# torch_cmake_prefix_path = os.environ.get('TORCH_CMAKE_PREFIX_PATH') \
-#     or subprocess.check_output(['python', '-c', 'import torch;print(torch.utils.cmake_prefix_path)'], text=True).strip()
-
 
 setup(
     cmdclass={
