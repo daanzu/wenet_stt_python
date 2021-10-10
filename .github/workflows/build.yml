@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push:
+    branches: [ build ]
+  pull_request:
+    branches: [ build ]
+  workflow_dispatch:
+    # gh api repos/:owner/:repo/actions/workflows/build.yml/dispatches -F ref=main
+
+jobs:
+
+  build-linux:
+    runs-on: ubuntu-20.04
+    if: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - run: |
+          building/dockcross-manylinux2014-x64 bash building/build-wheel-dockcross.sh manylinux2014_x86_64
+          # cp dist/* wheelhouse/
+          ls -al wheelhouse/
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: wheelhouse/*
+      - run: |
+          python3 -m pip install --upgrade pip wheel
+          python3 -m pip install pytest wheelhouse/*manylinux*
+          pushd tests/
+          python -m wenet_stt download gigaspeech_20210728_u2pp_conformer
+          ln -s gigaspeech_20210728_u2pp_conformer model
+          popd
+          pytest tests/
+          pytest tests/ -m download
+
+  build-macos:
+    runs-on: macos-10.15
+    if: false
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.9
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+      - name: Dependencies
+        run: |
+          python3 -m pip install --upgrade setuptools wheel scikit-build cmake ninja
+          brew install automake
+          brew install autoconf
+          brew install libtool
+      - run: |
+          python3 setup.py bdist_wheel
+          ls -al dist/
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*
+
+  build-windows:
+    runs-on: windows-2019
+    if: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: main/dist/*
