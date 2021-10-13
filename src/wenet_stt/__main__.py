@@ -11,14 +11,13 @@ from . import _name, WenetSTT, MODEL_DOWNLOADS
 DOWNLOAD_CHUNK_SIZE = 1 * 1024 * 1024
 
 def download_model(name, url, verbose):
-    from os.path import exists
+    import os, zipfile
     from urllib.request import urlopen
-    import zipfile
 
     filename = name + '.zip'
-    if exists(filename):
+    if os.path.exists(filename):
         raise FileExistsError(filename)
-    if exists(name):
+    if os.path.exists(name):
         raise FileExistsError(name)
 
     if verbose:
@@ -41,6 +40,10 @@ def download_model(name, url, verbose):
         print("Extracting...")
     with zipfile.ZipFile(filename, 'r') as zip_file:
         zip_file.extractall()
+    if verbose:
+        print("Done!")
+        print("Removing zip file...")
+    os.remove(filename)
     if verbose:
         print("Done!")
 
