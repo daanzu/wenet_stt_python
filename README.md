@@ -26,7 +26,7 @@ Models:
 
 ```python
 from wenet_stt import WenetSTT
-decoder = WenetSTT('model_dir')
+decoder = WenetSTT(WenetSTT.build_config('model_dir'))
 
 import wave
 with wave.open('tests/test.wav', 'rb') as wav_file:
