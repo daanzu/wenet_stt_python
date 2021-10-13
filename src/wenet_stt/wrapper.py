@@ -39,7 +39,14 @@ class FFIObject(object):
     @classmethod
     def _init_ffi(cls):
         _ffi.cdef(_c_source_ignore_regex.sub(' ', cls._library_header_text))
-        return _ffi.dlopen(_library_binary_path)
+        # On Windows, we need to temporarily prepend the PATH with the directory containing the DLLs to ensure that the DLLs are found.
+        if _platform == 'windows':
+            os.environ['PATH'] = os.pathsep.join([_library_directory_path, os.environ['PATH']])
+        try:
+            return _ffi.dlopen(_library_binary_path)
+        finally:
+            if _platform == 'windows':
+                os.environ['PATH'] = os.pathsep.join(os.environ['PATH'].split(os.pathsep)[1:])
 
 class WenetSTT(FFIObject):
 
