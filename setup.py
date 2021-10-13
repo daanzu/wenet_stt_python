@@ -101,11 +101,12 @@ setup(
     package_dir={'': 'src'},
     # py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     package_data={
-        'wenet_stt': ['libwenet_stt_lib.*'],
+        # 'package_name': ['glob_patterns_to_install'],
+        'wenet_stt': ['libwenet_stt_lib.so', '*.dll'],
         '': ['LICENSE'],
     },
     zip_safe=False,
-    cmake_process_manifest_hook=(lambda cmake_manifest: []),  # We manually copy out the files we care about from the cmake build, so ignore everything else that is installed.
+    cmake_process_manifest_hook=(lambda cmake_manifest: []),  # We manually copy out the files we care about from the cmake build, so ignore everything else that is installed in/by cmake.
     python_requires='>=3.6, <4',
     install_requires=[
         'cffi ~= 1.12',
