@@ -5,7 +5,7 @@
 #
 
 _name = 'wenet_stt'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __author__ = 'David Zurow'
 __license__ = 'AGPL-3.0'
 
