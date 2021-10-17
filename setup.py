@@ -102,7 +102,7 @@ setup(
     # py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
     package_data={
         # 'package_name': ['glob_patterns_to_install'],
-        'wenet_stt': ['libwenet_stt_lib.so', '*.dll'],
+        'wenet_stt': ['libwenet_stt_lib.so', 'libwenet_stt_lib.dylib', '*.dll'],
         '': ['LICENSE'],
     },
     zip_safe=False,

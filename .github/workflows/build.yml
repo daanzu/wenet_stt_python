@@ -69,7 +69,7 @@ jobs:
 
   build-macos:
     runs-on: macos-10.15
-    if: false
+    if: true
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.9
     steps:
@@ -78,14 +78,31 @@ jobs:
           submodules: 'recursive'
       - name: Dependencies
         run: |
-          python3 -m pip install --upgrade setuptools wheel scikit-build cmake ninja
+          python3 -m pip install --upgrade -r requirements-build.txt
+          python3 -m pip install --upgrade delocate
           brew install automake
           brew install autoconf
           brew install libtool
       - run: |
           python3 setup.py bdist_wheel
           ls -al dist/
+          find . -type f -name "*.dylib"
+          export DYLD_FALLBACK_LIBRARY_PATH="./native/wenet/runtime/server/x86/fc_base/libtorch-src/lib"
+          delocate-listdeps --depending dist/*macos*
+          delocate-wheel -v dist/*macos*
+          delocate-listdeps --depending dist/*macos*
+          ls -al dist/
       - uses: actions/upload-artifact@v2
         with:
           name: wheels
           path: dist/*
+      - name: Tests
+        run: |
+          python3 -m pip install --upgrade pip wheel
+          python3 -m pip install pytest dist/*macos*
+          pushd tests/
+          python3 -m wenet_stt download gigaspeech_20210728_u2pp_conformer
+          ln -s gigaspeech_20210728_u2pp_conformer model
+          popd
+          pytest tests/
+          pytest tests/ -m download

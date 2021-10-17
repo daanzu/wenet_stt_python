@@ -44,28 +44,28 @@ def test_decode(decoder, wav_samples):
 class TestCLI:
 
     def test_decode(self):
-        process = subprocess.run(f'python -m wenet_stt decode {test_model_path} {test_wav_path}', shell=True, check=True, capture_output=True)
+        process = subprocess.run(f'python3 -m wenet_stt decode {test_model_path} {test_wav_path}', shell=True, check=True, capture_output=True)
         assert process.stdout.decode().strip().lower() == 'it depends on the context'
 
     def test_decode_multiple(self):
-        process = subprocess.run(f'python -m wenet_stt decode {test_model_path} {test_wav_path} {test_wav_path}', shell=True, check=True, capture_output=True)
+        process = subprocess.run(f'python3 -m wenet_stt decode {test_model_path} {test_wav_path} {test_wav_path}', shell=True, check=True, capture_output=True)
         assert process.stdout.decode().strip().lower().splitlines() == ['it depends on the context'] * 2
 
     def test_download_list(self):
-        process = subprocess.run(f'python -m wenet_stt download', shell=True, check=True, capture_output=True)
+        process = subprocess.run(f'python3 -m wenet_stt download', shell=True, check=True, capture_output=True)
         assert process.stdout.decode().strip().splitlines() == ["List of available models:"] + list(MODEL_DOWNLOADS.keys())
 
     @pytest.mark.download
     def test_download_actual(self):
         test_model_name = list(MODEL_DOWNLOADS.keys())[0]
         with tempfile.TemporaryDirectory() as tmpdir:
-            process = subprocess.run(f'python -m wenet_stt download {test_model_name}', shell=True, check=True, capture_output=False, cwd=tmpdir)
+            process = subprocess.run(f'python3 -m wenet_stt download {test_model_name}', shell=True, check=True, capture_output=False, cwd=tmpdir)
             assert os.path.isdir(os.path.join(tmpdir, test_model_name))
             for filename in 'final.zip train.yaml words.txt'.split():
                 assert os.path.isfile(os.path.join(tmpdir, test_model_name, filename))
             test_model_path = os.path.join(tmpdir, test_model_name)
 
-            process = subprocess.run(f'python -m wenet_stt decode {test_model_path} {test_wav_path}', shell=True, check=True, capture_output=True)
+            process = subprocess.run(f'python3 -m wenet_stt decode {test_model_path} {test_wav_path}', shell=True, check=True, capture_output=True)
             assert process.stdout.decode().strip().lower() == 'it depends on the context'
 
 

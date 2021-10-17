@@ -10,7 +10,7 @@
 
 Requirements:
 * Python 3.7+ **x64**
-* Platform: **Windows/Linux** (MacOS may work; PRs welcome)
+* Platform: **Windows/Linux/MacOS**
 * Python package requirements: `cffi`, `numpy`
 * Wenet Model (must be "runtime" format)
     * Several are available ready-to-go on this project's [releases page](https://github.com/daanzu/wenet_stt_python/releases/tag/models) and below.
