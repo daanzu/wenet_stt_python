@@ -9,6 +9,8 @@ import json, os, re, sys
 from cffi import FFI
 import numpy as np
 
+from .utils import download_model
+
 if sys.platform.startswith('win'): _platform = 'windows'
 elif sys.platform.startswith('linux'): _platform = 'linux'
 elif sys.platform.startswith('darwin'): _platform = 'macos'
@@ -88,6 +90,15 @@ class WenetSTT(FFIObject):
             config['model_path'] = os.path.join(model_dir, 'final.zip')
             config['dict_path'] = os.path.join(model_dir, 'words.txt')
         return config
+
+    @classmethod
+    def download_model_if_not_exists(cls, name, parent_dir='.', verbose=False):
+        if os.path.exists(os.path.join(parent_dir, name)):
+            return False
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+        download_model(name, parent_dir=parent_dir, verbose=verbose)
+        return True
 
     def decode(self, wav_samples, text_max_len=1024):
         if not isinstance(wav_samples, np.ndarray): wav_samples = np.frombuffer(wav_samples, np.int16)
