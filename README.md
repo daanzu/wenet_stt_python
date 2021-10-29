@@ -9,8 +9,8 @@
 [![Donate](https://img.shields.io/badge/donate-PayPal-green.svg)](https://paypal.me/daanzu)
 
 Requirements:
-* Python 3.7+
-* Platform: Linux x64 (Windows is a work in progress; MacOS may work; PRs welcome)
+* Python 3.7+ **x64**
+* Platform: **Windows/Linux** (MacOS may work; PRs welcome)
 * Python package requirements: `cffi`, `numpy`
 * Wenet Model (must be "runtime" format)
     * Several are available ready-to-go on this project's [releases page](https://github.com/daanzu/wenet_stt_python/releases/tag/models) and below.
@@ -56,23 +56,13 @@ optional arguments:
 
 ## Installation/Building
 
-Recommended installation via wheel from pip (requires a recent version of pip):
+Recommended installation via binary wheel from pip (requires a recent version of pip):
 
 ```bash
 python -m pip install wenet_stt
 ```
 
-To build package for use locally:
-
-```bash
-python setup.py bdist_wheel
-```
-
-To build package for publishing:
-
-```bash
-building/dockcross-manylinux2014-x64 bash building/build-wheel-dockcross.sh manylinux2014_x86_64
-```
+For details on building from source, see the [Github Actions build workflow](.github/workflows/build.yml).
 
 ## Author
 
