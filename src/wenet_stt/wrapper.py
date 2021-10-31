@@ -53,9 +53,9 @@ class FFIObject(object):
 class WenetSTT(FFIObject):
 
     _library_header_text = """
-        WENET_STT_API void *wenet_stt__construct(const char *config_json_cstr);
-        WENET_STT_API bool wenet_stt__destruct(void *model_vp);
-        WENET_STT_API bool wenet_stt__decode(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len);
+        WENET_STT_API void *wenet_stt__construct_model(const char *config_json_cstr);
+        WENET_STT_API bool wenet_stt__destruct_model(void *model_vp);
+        WENET_STT_API bool wenet_stt__decode_utterance(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len);
     """
 
     def __init__(self, config):
@@ -69,16 +69,16 @@ class WenetSTT(FFIObject):
             raise FileNotFoundError("dict_path does not exist")
 
         super().__init__()
-        result = self._lib.wenet_stt__construct(encode(json.dumps(config)))
+        result = self._lib.wenet_stt__construct_model(encode(json.dumps(config)))
         if result == _ffi.NULL:
-            raise Exception("wenet_stt__construct failed")
+            raise Exception("wenet_stt__construct_model failed")
         self._model = result
 
     def __del__(self):
         if hasattr(self, '_model'):
-            result = self._lib.wenet_stt__destruct(self._model)
+            result = self._lib.wenet_stt__destruct_model(self._model)
             if not result:
-                raise Exception("wenet_stt__destruct failed")
+                raise Exception("wenet_stt__destruct_model failed")
 
     @classmethod
     def build_config(cls, model_dir=None, config=None):
@@ -107,9 +107,9 @@ class WenetSTT(FFIObject):
         wav_samples_float = _ffi.cast('float *', wav_samples_char)
         text_p = _ffi.new('char[]', text_max_len)
 
-        result = self._lib.wenet_stt__decode(self._model, wav_samples_float, len(wav_samples), text_p, text_max_len)
+        result = self._lib.wenet_stt__decode_utterance(self._model, wav_samples_float, len(wav_samples), text_p, text_max_len)
         if not result:
-            raise Exception("wenet_stt__decode failed")
+            raise Exception("wenet_stt__decode_utterance failed")
 
         text = decode(_ffi.string(text_p))
         if len(text) >= (text_max_len - 1):

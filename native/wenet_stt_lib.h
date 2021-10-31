@@ -22,6 +22,6 @@
 
 #include <cstdint>
 
-WENET_STT_API void *wenet_stt__construct(const char *config_json_cstr);
-WENET_STT_API bool wenet_stt__destruct(void *model_vp);
-WENET_STT_API bool wenet_stt__decode(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len);
+WENET_STT_API void *wenet_stt__construct_model(const char *config_json_cstr);
+WENET_STT_API bool wenet_stt__destruct_model(void *model_vp);
+WENET_STT_API bool wenet_stt__decode_utterance(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len);

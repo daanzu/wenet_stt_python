@@ -7,9 +7,7 @@
 #include <torch/script.h>
 
 #include "decoder/params.h"
-// #include "frontend/wav.h"
 #include "utils/log.h"
-// #include "utils/string.h"
 #include "utils/timer.h"
 #include "utils/utils.h"
 
@@ -206,20 +204,60 @@ struct WenetSTTModel {
     }
 
     int sample_rate() const { return feature_config_->sample_rate; }
+    bool is_streaming() const { return decode_config_->chunk_size > 0; }
+
+    std::string DecodeUtterance(const std::vector<float>& wav_samples) {
+        auto feature_pipeline = std::make_shared<wenet::FeaturePipeline>(*feature_config_);
+        feature_pipeline->AcceptWaveform(wav_samples);
+        feature_pipeline->set_input_finished();
+        LOG(INFO) << "Num frames: " << feature_pipeline->num_frames();
+        wenet::TorchAsrDecoder decoder(feature_pipeline, decode_resource_, *decode_config_);
+
+        int wav_duration = wav_samples.size() / sample_rate();
+        int decode_time = 0;
+        while (true) {
+            wenet::Timer timer;
+            wenet::DecodeState state = decoder.Decode();
+            if (state == wenet::DecodeState::kEndFeats) {
+                decoder.Rescoring();
+            }
+            int chunk_decode_time = timer.Elapsed();
+            decode_time += chunk_decode_time;
+            if (decoder.DecodedSomething()) {
+                LOG(INFO) << "Partial result: " << decoder.result()[0].sentence;
+            }
+            if (state == wenet::DecodeState::kEndFeats) {
+                break;
+            }
+        }
+        std::string hypothesis;
+        if (decoder.DecodedSomething()) {
+            hypothesis = decoder.result()[0].sentence;
+        }
+        LOG(INFO) << "Final result: " << hypothesis;
+        LOG(INFO) << "Decoded " << wav_duration << "ms audio taking " << decode_time << "ms. RTF: " << std::setprecision(4) << static_cast<float>(decode_time) / wav_duration;
+
+        // Strip any trailing whitespace
+        auto last_pos = hypothesis.find_last_not_of(' ');
+        hypothesis = hypothesis.substr(0, last_pos + 1);
+
+        return hypothesis;
+    }
 };
+
 
 extern "C" {
 #include "wenet_stt_lib.h"
 }
 
-void *wenet_stt__construct(const char *config_json_cstr) {
+void *wenet_stt__construct_model(const char *config_json_cstr) {
     BEGIN_INTERFACE_CATCH_HANDLER
     auto model = new WenetSTTModel(config_json_cstr);
     return model;
     END_INTERFACE_CATCH_HANDLER(nullptr)
 }
 
-bool wenet_stt__destruct(void *model_vp) {
+bool wenet_stt__destruct_model(void *model_vp) {
     BEGIN_INTERFACE_CATCH_HANDLER
     auto model = static_cast<WenetSTTModel*>(model_vp);
     delete model;
@@ -227,44 +265,10 @@ bool wenet_stt__destruct(void *model_vp) {
     END_INTERFACE_CATCH_HANDLER(false)
 }
 
-bool wenet_stt__decode(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len) {
+bool wenet_stt__decode_utterance(void *model_vp, float *wav_samples, int32_t wav_samples_len, char *text, int32_t text_max_len) {
     BEGIN_INTERFACE_CATCH_HANDLER
     auto model = static_cast<WenetSTTModel*>(model_vp);
-
-    auto feature_pipeline = std::make_shared<wenet::FeaturePipeline>(*model->feature_config_);
-    feature_pipeline->AcceptWaveform(std::vector<float>(wav_samples, wav_samples + wav_samples_len));
-    feature_pipeline->set_input_finished();
-    LOG(INFO) << "Num frames: " << feature_pipeline->num_frames();
-    wenet::TorchAsrDecoder decoder(feature_pipeline, model->decode_resource_, *model->decode_config_);
-
-    int wav_duration = wav_samples_len / model->sample_rate();
-    int decode_time = 0;
-    while (true) {
-        wenet::Timer timer;
-        wenet::DecodeState state = decoder.Decode();
-        if (state == wenet::DecodeState::kEndFeats) {
-            decoder.Rescoring();
-        }
-        int chunk_decode_time = timer.Elapsed();
-        decode_time += chunk_decode_time;
-        if (decoder.DecodedSomething()) {
-            LOG(INFO) << "Partial result: " << decoder.result()[0].sentence;
-        }
-        if (state == wenet::DecodeState::kEndFeats) {
-            break;
-        }
-    }
-    std::string hypothesis;
-    if (decoder.DecodedSomething()) {
-        hypothesis = decoder.result()[0].sentence;
-    }
-    LOG(INFO) << "Final result: " << hypothesis;
-    LOG(INFO) << "Decoded " << wav_duration << "ms audio taking " << decode_time << "ms. RTF: " << std::setprecision(4) << static_cast<float>(decode_time) / wav_duration;
-
-    // Strip any trailing whitespace
-    auto last_pos = hypothesis.find_last_not_of(' ');
-    hypothesis = hypothesis.substr(0, last_pos + 1);
-
+    auto hypothesis = model->DecodeUtterance(std::vector<float>(wav_samples, wav_samples + wav_samples_len));
     auto cstr = hypothesis.c_str();
     strncpy(text, cstr, text_max_len);
     text[text_max_len - 1] = 0;  // Just in case.
