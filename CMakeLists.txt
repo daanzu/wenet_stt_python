@@ -67,7 +67,7 @@ if(WIN32)
     add_custom_command(
         TARGET wenet_stt_lib POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            asmjit.dll c10.dll fbgemm.dll libiomp5md.dll torch_cpu.dll
+            asmjit.dll c10.dll fbgemm.dll libiomp5md.dll torch_cpu.dll uv.dll
             ${PROJECT_SOURCE_DIR}/src/wenet_stt/
         COMMENT "Installing required shared library dependency files to python project directory"
     )
