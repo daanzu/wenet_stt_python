@@ -6,6 +6,9 @@ _default:
 build:
 	python setup.py bdist_wheel
 
+build-type type="Debug":
+	python setup.py bdist_wheel --build-type={{type}}
+
 build-manylinux:
 	building/dockcross-manylinux2014-x64 bash building/build-wheel-dockcross.sh manylinux2014_x86_64
 

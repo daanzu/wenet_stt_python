@@ -178,6 +178,14 @@ std::shared_ptr<wenet::DecodeResource> InitDecodeResourceFromSimpleJson(const nl
     }
     resource->unit_table = unit_table;
 
+    // FIXME: handle context graph
+
+    wenet::PostProcessOptions post_process_opts;
+    post_process_opts.language_type = j.contains("language_type") ? static_cast<wenet::LanguageType>(j.at("language_type").get<int32_t>()) : wenet::kMandarinEnglish;
+    post_process_opts.lowercase = j.contains("lowercase") ? j.at("lowercase").get<bool>() : true;
+    resource->post_processor =
+      std::make_shared<wenet::PostProcessor>(std::move(post_process_opts));
+
     return resource;
 }
 
