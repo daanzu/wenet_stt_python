@@ -38,7 +38,7 @@ def test_destruct(model):
     del model
 
 def test_decode(model, wav_samples):
-    assert model.decode(wav_samples).strip().lower() == 'it depends on the context'
+    assert model.decode(wav_samples).lower() == 'it depends on the context'
 
 
 class TestCLI:

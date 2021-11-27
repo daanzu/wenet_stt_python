@@ -115,4 +115,4 @@ class WenetSTTModel(FFIObject):
         text = decode(_ffi.string(text_p))
         if len(text) >= (text_max_len - 1):
             raise Exception("text may be too long")
-        return text
+        return text.strip()

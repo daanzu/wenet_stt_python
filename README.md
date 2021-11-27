@@ -32,7 +32,7 @@ import wave
 with wave.open('tests/test.wav', 'rb') as wav_file:
     wav_samples = wav_file.readframes(wav_file.getnframes())
 
-assert model.decode(wav_samples).strip().lower() == 'it depends on the context'
+assert model.decode(wav_samples).lower() == 'it depends on the context'
 ```
 
 Also contains a simple CLI interface for recognizing `wav` files:
