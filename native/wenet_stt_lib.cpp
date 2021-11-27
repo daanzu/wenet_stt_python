@@ -7,7 +7,6 @@
 #include <torch/script.h>
 
 #include "decoder/params.h"
-#include "utils/log.h"
 #include "utils/timer.h"
 #include "utils/utils.h"
 
@@ -94,6 +93,10 @@ std::shared_ptr<wenet::DecodeOptions> InitDecodeOptionsFromSimpleJson(const nloh
     if (j.contains("acoustic_scale")) { j.at("acoustic_scale").get_to(decode_config->ctc_wfst_search_opts.acoustic_scale); } else { decode_config->ctc_wfst_search_opts.acoustic_scale = FLAGS_acoustic_scale; }
     if (j.contains("blank_skip_thresh")) { j.at("blank_skip_thresh").get_to(decode_config->ctc_wfst_search_opts.blank_skip_thresh); } else { decode_config->ctc_wfst_search_opts.blank_skip_thresh = FLAGS_blank_skip_thresh; }
     if (j.contains("nbest")) { j.at("nbest").get_to(decode_config->ctc_wfst_search_opts.nbest); } else { decode_config->ctc_wfst_search_opts.nbest = FLAGS_nbest; }
+
+    decode_config->ctc_endpoint_config.rule1.min_utterance_length = 60000;
+    decode_config->ctc_endpoint_config.rule2.min_utterance_length = 60000;
+    decode_config->ctc_endpoint_config.rule3.min_utterance_length = 60000;
     return decode_config;
 }
 
@@ -253,6 +256,95 @@ struct WenetSTTModel {
     }
 };
 
+class WenetSTTDecoder {
+public:
+    WenetSTTDecoder(std::shared_ptr<const WenetSTTModel> model) :
+        model_(model),
+        feature_pipeline_(std::make_shared<wenet::FeaturePipeline>(*model_->feature_config_)),
+        decoder_(std::make_shared<wenet::TorchAsrDecoder>(feature_pipeline_, model_->decode_resource_, *model_->decode_config_)),
+        decode_thread_(std::make_unique<std::thread>(&WenetSTTDecoder::DecodeThreadFunc, this)) {}
+
+    ~WenetSTTDecoder() {
+        if (decode_thread_->joinable()) {
+            decode_thread_->join();
+        }
+    }
+
+    // Decodes given audio block, and finalizes if passed true. Must not be called again after finalizing without having called Reset().
+    void Decode(const std::vector<float>& wav_samples, bool finalize) {
+        CHECK(!finalized_);
+        started_ = true;
+        if (!wav_samples.empty()) {
+            feature_pipeline_->AcceptWaveform(wav_samples);
+        }
+        if (finalize) {
+            feature_pipeline_->set_input_finished();
+            finalized_ = true;
+        }
+    }
+
+    // Places current result into given string, and returns true if it was final.
+    bool GetResult(std::string& result) {
+        std::lock_guard<std::mutex> lock(result_mutex_);
+        result = result_;
+        return result_is_final_;
+    }
+
+    // Reset decoder for decoding a new utterance.
+    void Reset() {
+        started_ = false;
+        finalized_ = false;
+        result_.clear();
+        result_is_final_ = false;
+        feature_pipeline_->Reset();
+        decoder_->Reset();
+        CHECK(!decode_thread_->joinable());
+        decode_thread_ = std::make_unique<std::thread>(&WenetSTTDecoder::DecodeThreadFunc, this);
+    }
+
+protected:
+
+    // Decode in separate thread.
+    void DecodeThreadFunc() {
+        while (true) {
+            wenet::DecodeState state = decoder_->Decode();
+            CHECK(started_);
+            if (state == wenet::DecodeState::kEndFeats) {
+                CHECK(finalized_);
+                decoder_->Rescoring();
+                if (decoder_->DecodedSomething()) {
+                    VLOG(1) << "Final result: " << decoder_->result()[0].sentence;
+                    std::lock_guard<std::mutex> lock(result_mutex_);
+                    result_ = decoder_->result()[0].sentence;
+                    result_is_final_ = true;
+                }
+                break;
+            } else if (state == wenet::DecodeState::kEndpoint) {
+                CHECK(false) << "Endpoint reached";
+                decoder_->ResetContinuousDecoding();
+            } else {
+                if (decoder_->DecodedSomething()) {
+                    VLOG(1) << "Partial result: " << decoder_->result()[0].sentence;
+                    std::lock_guard<std::mutex> lock(result_mutex_);
+                    result_ = decoder_->result()[0].sentence;
+                }
+            }
+        }
+    }
+
+    std::shared_ptr<const WenetSTTModel> model_;
+    std::shared_ptr<wenet::FeaturePipeline> feature_pipeline_;
+    std::shared_ptr<wenet::TorchAsrDecoder> decoder_;
+    std::unique_ptr<std::thread> decode_thread_;
+
+    bool started_ = false;
+    bool finalized_ = false;
+
+    std::mutex result_mutex_;
+    std::string result_;
+    bool result_is_final_ = false;
+};
+
 
 extern "C" {
 #include "wenet_stt_lib.h"
@@ -280,6 +372,49 @@ bool wenet_stt__decode_utterance(void *model_vp, float *wav_samples, int32_t wav
     auto cstr = hypothesis.c_str();
     strncpy(text, cstr, text_max_len);
     text[text_max_len - 1] = 0;  // Just in case.
+    return true;
+    END_INTERFACE_CATCH_HANDLER(false)
+}
+
+void *wenet_stt__construct_decoder(void *model_vp) {
+    BEGIN_INTERFACE_CATCH_HANDLER
+    auto model = static_cast<WenetSTTModel*>(model_vp);
+    auto decoder = new WenetSTTDecoder(std::make_shared<const WenetSTTModel>(*model));
+    return decoder;
+    END_INTERFACE_CATCH_HANDLER(nullptr)
+}
+
+bool wenet_stt__destruct_decoder(void *decoder_vp) {
+    BEGIN_INTERFACE_CATCH_HANDLER
+    auto decoder = static_cast<WenetSTTDecoder*>(decoder_vp);
+    delete decoder;
+    return true;
+    END_INTERFACE_CATCH_HANDLER(false)
+}
+
+bool wenet_stt__decode(void *decoder_vp, float *wav_samples, int32_t wav_samples_len, bool finalize) {
+    BEGIN_INTERFACE_CATCH_HANDLER
+    auto decoder = static_cast<WenetSTTDecoder*>(decoder_vp);
+    decoder->Decode(std::vector<float>(wav_samples, wav_samples + wav_samples_len), finalize);
+    return true;
+    END_INTERFACE_CATCH_HANDLER(false)
+}
+
+bool wenet_stt__get_result(void *decoder_vp, char *text, int32_t text_max_len, bool *final_p) {
+    BEGIN_INTERFACE_CATCH_HANDLER
+    auto decoder = static_cast<WenetSTTDecoder*>(decoder_vp);
+    std::string result;
+    *final_p = decoder->GetResult(result);
+    strncpy(text, result.c_str(), text_max_len);
+    text[text_max_len - 1] = 0;  // Just in case.
+    return true;
+    END_INTERFACE_CATCH_HANDLER(false)
+}
+
+bool wenet_stt__reset(void *decoder_vp) {
+    BEGIN_INTERFACE_CATCH_HANDLER
+    auto decoder = static_cast<WenetSTTDecoder*>(decoder_vp);
+    decoder->Reset();
     return true;
     END_INTERFACE_CATCH_HANDLER(false)
 }

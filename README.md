@@ -15,6 +15,10 @@ Requirements:
 * Wenet Model (must be "runtime" format)
     * Several are available ready-to-go on this project's [releases page](https://github.com/daanzu/wenet_stt_python/releases/tag/models) and below.
 
+Features:
+* Synchronous decoding of single utterance
+* Streaming decoding, using separate thread
+
 Models:
 
 | Model | Download Size |

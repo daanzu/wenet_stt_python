@@ -8,7 +8,7 @@ import os, subprocess, tempfile, wave
 
 import pytest
 
-from wenet_stt import WenetSTTModel, MODEL_DOWNLOADS
+from wenet_stt import WenetSTTModel, WenetSTTDecoder, MODEL_DOWNLOADS
 
 test_model_path = os.path.join(os.path.dirname(__file__), 'model')
 test_missing_model_path = os.path.join(os.path.dirname(__file__), 'missing_model')
@@ -22,6 +22,10 @@ def model():
 @pytest.fixture
 def model_factory():
     return lambda config={}: WenetSTTModel(WenetSTTModel.build_config(test_model_path, config=config))
+
+@pytest.fixture
+def decoder_factory():
+    return lambda config={}: WenetSTTDecoder(WenetSTTModel(WenetSTTModel.build_config(test_model_path, config=config)))
 
 @pytest.fixture
 def wav_samples():
@@ -48,6 +52,24 @@ def test_decode_multithreaded(model_factory, wav_samples):
     assert model_factory(dict(num_threads=2)).decode(wav_samples).lower() == 'it depends on the context'
 
 def test_decode_streaming(decoder_factory, wav_samples):
+    chunks = [wav_samples[i:i+1024] for i in range(0, len(wav_samples), 1024)]
+    assert len(chunks) > 2
+    decoder = decoder_factory()
+    for i, chunk in enumerate(chunks):
+        if i == 1:
+            text, final = decoder.get_result()
+            assert final == False
+            assert text == ''
+        finalize = bool(i == len(chunks) - 1)
+        decoder.decode(chunk, finalize)
+        if not finalize:
+            text, final = decoder.get_result()
+            assert final == False
+    text, final = decoder.get_result(True)
+    assert final == True
+    assert text.lower() == 'it depends on the context'
+
+
 class TestCLI:
 
     def test_decode(self):
