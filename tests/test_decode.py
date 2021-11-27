@@ -20,6 +20,10 @@ def model():
     return WenetSTTModel(WenetSTTModel.build_config(test_model_path))
 
 @pytest.fixture
+def model_factory():
+    return lambda config={}: WenetSTTModel(WenetSTTModel.build_config(test_model_path, config=config))
+
+@pytest.fixture
 def wav_samples():
     with wave.open(test_wav_path, 'rb') as wav_file:
         data = wav_file.readframes(wav_file.getnframes())
@@ -40,7 +44,10 @@ def test_destruct(model):
 def test_decode(model, wav_samples):
     assert model.decode(wav_samples).lower() == 'it depends on the context'
 
+def test_decode_multithreaded(model_factory, wav_samples):
+    assert model_factory(dict(num_threads=2)).decode(wav_samples).lower() == 'it depends on the context'
 
+def test_decode_streaming(decoder_factory, wav_samples):
 class TestCLI:
 
     def test_decode(self):
