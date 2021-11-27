@@ -86,6 +86,7 @@ class WenetSTTModel(FFIObject):
             config = dict()
         if not isinstance(config, dict):
             raise TypeError("config must be a dict or None")
+        config = config.copy()
         if model_dir is not None:
             config['model_path'] = os.path.join(model_dir, 'final.zip')
             config['dict_path'] = os.path.join(model_dir, 'words.txt')
