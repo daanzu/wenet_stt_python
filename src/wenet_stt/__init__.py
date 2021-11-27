@@ -14,4 +14,4 @@ MODEL_DOWNLOADS = {
     'gigaspeech_20210811_conformer_bidecoder': 'https://github.com/daanzu/wenet_stt_python/releases/download/models/gigaspeech_20210811_conformer_bidecoder.zip'
 }
 
-from .wrapper import WenetSTT
+from .wrapper import WenetSTTModel

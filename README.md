@@ -25,14 +25,14 @@ Models:
 ## Usage
 
 ```python
-from wenet_stt import WenetSTT
-decoder = WenetSTT(WenetSTT.build_config('model_dir'))
+from wenet_stt import WenetSTTModel
+model = WenetSTTModel(WenetSTTModel.build_config('model_dir'))
 
 import wave
 with wave.open('tests/test.wav', 'rb') as wav_file:
     wav_samples = wav_file.readframes(wav_file.getnframes())
 
-assert decoder.decode(wav_samples).strip().lower() == 'it depends on the context'
+assert model.decode(wav_samples).strip().lower() == 'it depends on the context'
 ```
 
 Also contains a simple CLI interface for recognizing `wav` files:

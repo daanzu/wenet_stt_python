@@ -50,7 +50,7 @@ class FFIObject(object):
             if _platform == 'windows':
                 os.environ['PATH'] = os.pathsep.join(os.environ['PATH'].split(os.pathsep)[1:])
 
-class WenetSTT(FFIObject):
+class WenetSTTModel(FFIObject):
 
     _library_header_text = """
         WENET_STT_API void *wenet_stt__construct_model(const char *config_json_cstr);

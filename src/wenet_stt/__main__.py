@@ -6,7 +6,7 @@
 
 import argparse
 
-from . import _name, WenetSTT, MODEL_DOWNLOADS
+from . import _name, WenetSTTModel, MODEL_DOWNLOADS
 from .utils import download_model
 
 def main():
@@ -21,7 +21,7 @@ def main():
 
     if args.command == 'decode':
         import wave
-        wenet_stt = WenetSTT(WenetSTT.build_config(args.model_dir))
+        wenet_stt = WenetSTTModel(WenetSTTModel.build_config(args.model_dir))
         for wave_file_path in args.wav_file:
             with wave.open(wave_file_path, 'rb') as wav_file:
                 wav_data = wav_file.readframes(wav_file.getnframes())
